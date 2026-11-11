@@ -29,10 +29,13 @@ tingda/
 ├── article.txt     示例文章（听打的基本原理）
 ├── docs/           也可以把文章放这里
 │   └── rhythm.txt  示例文章（速记的节奏感）
-├── library.js      文章数据（prep.py 生成）
+├── library.js      文章数据（prep.py 生成，不入库）
 ├── library.json    prep.py 的状态文件（自动生成，不用管）
 └── audio/          语音文件（prep.py 生成，按文章分目录）
 ```
+
+> 注意：`library.js`、`library.json` 和 `audio/` 是 prep.py 的生成物，不进版本库。
+> 从 GitHub clone 下来后先运行一次 `python prep.py`，这三样就有了。
 
 ### 2.（可选）安装真人语音引擎
 
