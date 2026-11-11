@@ -2,6 +2,11 @@
 __pycache__/
 *.pyc
 
+# 生成物：由 prep.py 生成，clone 后运行 `python prep.py` 重新得到
+audio/
+library.js
+library.json
+
 # 系统
 Thumbs.db
 .DS_Store
