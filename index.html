@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>听打练习</title>
+<style>
+  :root{
+    --bg:#16171b; --panel:#1d1f24; --panel2:#23262c; --line:#2b2f37;
+    --text:#e7e8ea; --muted:#868c96; --dim:#5d636d;
+    --accent:#6aa9ff; --ok:#4ec9a0; --bad:#ec6a5e; --warn:#d9a441;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text)}
+  body{font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+       -webkit-font-smoothing:antialiased;padding:28px 20px 64px}
+  .wrap{max-width:820px;margin:0 auto}
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .brand{font-size:13px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+  .doc{font-size:15px;font-weight:600}
+  select.docpick{font:inherit;font-size:15px;font-weight:600;color:var(--text);
+         background:transparent;border:1px solid transparent;border-radius:7px;
+         padding:2px 4px 2px 6px;max-width:420px;cursor:pointer;
+         transition:border-color .15s,background .15s}
+  select.docpick:hover{border-color:var(--line);background:var(--panel2)}
+  select.docpick:focus{outline:none;border-color:var(--accent)}
+  select.docpick:disabled{opacity:1;color:var(--text)}
+  .stats{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px}
+  .track > i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s ease}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+  .row{display:flex;align-items:center;gap:12px}
+  .row.between{justify-content:space-between;margin-top:10px}
+  button{font:inherit;font-size:13px;color:var(--text);background:var(--panel2);
+         border:1px solid var(--line);border-radius:8px;padding:8px 16px;cursor:pointer;
+         transition:border-color .15s,background .15s}
+  button:hover:not(:disabled){border-color:#3d434e;background:#282b32}
+  button:disabled{opacity:.38;cursor:default}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#0e1116;font-weight:600}
+  button.primary:hover:not(:disabled){background:#7fb7ff;border-color:#7fb7ff}
+  button.ghost{background:transparent}
+  .viz{display:flex;align-items:center;gap:3px;height:22px;opacity:.25;transition:opacity .2s}
+  .viz.on{opacity:1}
+  .viz i{width:3px;height:6px;background:var(--accent);border-radius:2px}
+  .viz.on i{animation:wave .9s ease-in-out infinite}
+  .viz.on i:nth-child(2){animation-delay:.1s}
+  .viz.on i:nth-child(3){animation-delay:.2s}
+  .viz.on i:nth-child(4){animation-delay:.3s}
+  .viz.on i:nth-child(5){animation-delay:.4s}
+  .viz.on i:nth-child(6){animation-delay:.5s}
+  .viz.on i:nth-child(7){animation-delay:.6s}
+  @keyframes wave{0%,100%{height:6px}50%{height:20px}}
+  .hint{font-size:12px;color:var(--dim)}
+  textarea{width:100%;min-height:110px;resize:vertical;background:#12141a;color:var(--text);
+           border:1px solid var(--line);border-radius:10px;padding:14px;font:inherit;
+           line-height:1.9;outline:none;transition:border-color .15s}
+  textarea:focus{border-color:var(--accent)}
+  textarea:disabled{opacity:.45}
+  select{font:inherit;font-size:12px;background:var(--panel2);color:var(--text);
+         border:1px solid var(--line);border-radius:6px;padding:4px 8px;outline:none}
+  .chk{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
+       cursor:pointer;user-select:none}
+  .chk input{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;margin:0}
+  .diff{font-size:16px;line-height:2.1;word-break:break-all;font-family:"Microsoft YaHei",sans-serif}
+  .diff .ok{color:var(--ok)}
+  .diff .bad{color:var(--bad);background:rgba(236,106,94,.14);border-bottom:1.5px solid var(--bad);border-radius:2px}
+  .diff .p{color:var(--dim)}
+  .typed{font-size:14px;line-height:2;word-break:break-all;color:var(--muted);font-family:"Microsoft YaHei",sans-serif}
+  .typed .bad{color:var(--bad)}
+  .typed .ok{color:var(--muted)}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;
+         border:1px solid var(--line);color:var(--muted);font-variant-numeric:tabular-nums}
+  .badge.good{color:var(--ok);border-color:rgba(78,201,160,.45);background:rgba(78,201,160,.1)}
+  .badge.mid{color:var(--warn);border-color:rgba(217,164,65,.4);background:rgba(217,164,65,.1)}
+  .badge.low{color:var(--bad);border-color:rgba(236,106,94,.4);background:rgba(236,106,94,.1)}
+  .badge.speed{color:var(--accent);border-color:rgba(106,169,255,.4);background:rgba(106,169,255,.1)}
+  .label{font-size:11px;letter-spacing:.08em;color:var(--dim);margin-bottom:8px}
+  .scroller{max-height:280px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+  td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:400;font-size:11px;letter-spacing:.06em}
+  td.num{text-align:right;color:var(--muted)}
+  td.ok{color:var(--ok)}
+  [hidden]{display:none !important}
+  .void{color:var(--dim);font-size:13px;padding:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="brand">听打练习</span>
+    <select id="docPick" class="docpick" title="切换文章"></select>
+    <span class="stats" id="stats"></span>
+  </header>
+
+  <div class="track"><i id="bar"></i></div>
+
+  <div class="panel" id="loader" hidden>
+    <div class="label">还没生成文章数据（library.js），也可以直接粘贴一段文章开始</div>
+    <textarea id="pasteBox" placeholder="把要练的文章粘贴到这里，它会自动切成小段…"></textarea>
+    <div class="row between">
+      <span class="hint">将使用系统语音朗读（建议装 edge-tts 获得更好音色）</span>
+      <button class="primary" id="btnPaste">开始练习</button>
+    </div>
+  </div>
+
+  <div class="panel" id="stage" hidden>
+    <div class="row">
+      <button class="primary" id="btnPlay">开始听打</button>
+      <div class="viz" id="viz"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="hint" id="playHint"></div>
+      <div style="margin-left:auto" class="row">
+        <span class="hint">语速</span>
+        <select id="rate">
+          <option value="0.7">0.7×</option>
+          <option value="0.85">0.85×</option>
+          <option value="0.9">0.9×</option>
+          <option value="1">1.0×</option>
+          <option value="1.15">1.15×</option>
+          <option value="1.3">1.3×</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="inputPanel" hidden>
+    <textarea id="input" placeholder="边听边打，或听完再打…（打完全对自动跳段；不一致时 Enter 提交，Esc 重听）" disabled></textarea>
+    <div class="row between">
+      <span class="hint" id="counter">0 字</span>
+      <button id="btnSubmit" disabled>提交 Enter</button>
+    </div>
+  </div>
+
+  <div class="panel" id="result" hidden>
+    <div class="row between" style="margin:0 0 14px">
+      <div class="row" id="scoreRow"></div>
+      <span class="hint" id="resultHint"></span>
+    </div>
+    <div class="label">上一段原文</div>
+    <div class="scroller"><div class="diff" id="diffOrig"></div></div>
+    <div class="label" style="margin-top:14px">你的输入</div>
+    <div class="scroller"><div class="typed" id="diffTyped"></div></div>
+  </div>
+
+  <div class="panel" id="summary" hidden>
+    <div class="label">练习完成</div>
+    <div class="row" id="sumHead" style="margin-bottom:16px"></div>
+    <div class="scroller"><table id="sumTable"></table></div>
+    <div class="row between" style="margin-top:16px">
+      <span class="hint">记录已保存在本机</span>
+      <button class="ghost" id="btnRestart">重新开始</button>
+    </div>
+  </div>
+</div>
+
+<script src="library.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const S = {
+    docs: [], doc: null,
+    segs: [], meta: { title: '', audio: false, count: 0 },
+    i: 0, phase: 'idle', rate: 0.9,
+    audio: null, utter: null, audioBroken: false,
+    plays: 0, records: [], key: '', lastR: null, t0: null, nudgeT: null
+  };
+
+  document.addEventListener('DOMContentLoaded', boot);
+  function boot() {
+    let docs = [];
+    if (typeof DOCS !== 'undefined' && Array.isArray(DOCS) && DOCS.length) {
+      docs = DOCS.filter((d) => d && d.id && Array.isArray(d.segs) && d.segs.length);
+    } else if (typeof SEGS !== 'undefined' && Array.isArray(SEGS) && SEGS.length) {
+      // 兼容老版本的单文档 segs.js
+      const m = (typeof META !== 'undefined' && META) ? META : {};
+      docs = [{
+        id: String(m.title || 'article'), title: m.title || '文章',
+        audio: !!m.audio, count: SEGS.length, segs: SEGS
+      }];
+    }
+
+    if (!docs.length) {
+      $('loader').hidden = false;
+      $('docPick').innerHTML = '<option>粘贴文本模式</option>';
+      $('btnPaste').onclick = () => {
+        const text = $('pasteBox').value.trim();
+        if (!text) return;
+        const segs = frontSplit(text, 8, 15);
+        S.docs = [{ id: 'pasted', title: '临时文章', audio: false, count: segs.length, segs }];
+        buildPicker();
+        $('loader').hidden = true;
+        activate(S.docs[0]);
+      };
+      return;
+    }
+
+    S.docs = docs;
+    buildPicker();
+    let last = '';
+    try { last = localStorage.getItem('tingda:last') || ''; } catch (e) { /* 隐私模式 */ }
+    activate(docs.find((d) => d.id === last) || docs[0]);
+  }
+
+  // 顶部文章下拉框：切换即换文章，各篇进度互不影响
+  function buildPicker() {
+    const sel = $('docPick');
+    sel.innerHTML = S.docs.map((d) =>
+      '<option value="' + esc(d.id) + '">《' + esc(d.title) + '》' + d.segs.length + ' 段</option>'
+    ).join('');
+    sel.disabled = S.docs.length < 2 && S.docs[0].id === 'pasted';
+  }
+
+  function activate(doc) {
+    stopAudio();
+    clearTimeout(S.nudgeT);
+    S.doc = doc;
+    S.segs = doc.segs;
+    S.meta = doc;
+    S.i = 0; S.plays = 0; S.records = []; S.t0 = null; S.lastR = null; S.audioBroken = false;
+    $('docPick').value = doc.id;
+    $('input').value = '';
+    $('result').hidden = true;
+    $('summary').hidden = true;
+    $('stage').hidden = false;
+    $('inputPanel').hidden = false;
+    $('bar').style.width = '0%';
+    try { localStorage.setItem('tingda:last', doc.id); } catch (e) { /* 忽略 */ }
+    startSession();
+  }
+
+  function startSession() {
+    $('stage').hidden = false;
+    $('inputPanel').hidden = false;
+    S.key = 'tingda:' + (S.doc.id || 'default');   // 每篇文章独立进度
+
+    const saved = load();
+    S.records = saved.records || [];
+    S.rate = saved.rate || 0.9;
+    $('rate').value = String(S.rate);
+
+    const cont = saved.cursor && saved.cursor > 0 && saved.cursor < S.segs.length;
+    if (cont) S.i = saved.cursor;
+    setPhase('ready');
+    renderTop();
+    updateCounter();
+    if (cont) $('playHint').textContent = '上次练到第 ' + (S.i + 1) + ' 段，按 Enter 继续';
+  }
+
+  // ---------------------------------------------------------------- 播放
+
+  function play() {
+    if (!S.segs.length || S.phase === 'playing') return;
+    stopAudio();
+    if (S.t0 === null) S.t0 = performance.now();   // 本段计时起点：首次开播，重播不重置
+    S.plays += 1;
+    setPhase('playing');
+    $('input').focus();               // 边听边打：开播即可输入，不用再点一下
+    const text = S.segs[S.i];
+
+    if (S.meta.audio && !S.audioBroken) {
+      const src = 'audio/' + S.doc.id + '/' + String(S.i).padStart(3, '0') + '.mp3';
+      const a = new Audio(src);
+      S.audio = a;
+      a.playbackRate = S.rate;
+      a.onended = onSpoken;
+      a.onerror = () => { S.audioBroken = true; speak(text); };
+      a.play().catch(() => { S.audioBroken = true; speak(text); });
+    } else {
+      speak(text);
+    }
+  }
+
+  function speak(text) {
+    if (!('speechSynthesis' in window)) {
+      $('playHint').textContent = '当前浏览器不支持语音，请安装 edge-tts 后重新运行 prep.py';
+      setPhase('typing');
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.rate = S.rate;
+    const zh = speechSynthesis.getVoices().find((v) => /zh|Chinese/i.test(v.lang + v.name));
+    if (zh) u.voice = zh;
+    u.onend = onSpoken;
+    S.utter = u;
+    speechSynthesis.speak(u);
+  }
+
+  function stopAudio() {
+    if (S.audio) { S.audio.onended = null; S.audio.pause(); S.audio = null; }
+    if (S.utter) { speechSynthesis.cancel(); S.utter = null; }
+  }
+
+  function onSpoken() {
+    S.audio = null;
+    setPhase('typing');
+    $('input').focus();
+  }
+
+  // ---------------------------------------------------------------- 提交与比对
+
+  function submit(fromAuto) {
+    if (S.phase !== 'typing' && S.phase !== 'playing') return;
+    // 播放期间一律不接受手动提交（按钮已禁用，这里拦 Enter / 其他途径），
+    // 只有"打完全对"的自动提交例外——那不是误触，是明确的完成信号。
+    if (S.phase === 'playing' && !fromAuto) { nudge('语音还在播放，等念完再提交'); return; }
+    stopAudio();                      // 自动提交时若还在播，立刻掐掉语音
+    const typed = $('input').value;
+    const r = compare(S.segs[S.i], typed);
+    const m = measure(typed);         // 速度：本段首次开播 → 此刻
+    r.cpm = m.cpm; r.secs = m.secs;
+    S.records = S.records.filter((x) => x.i !== S.i);
+    S.records.push({ i: S.i, acc: r.acc, correct: r.correct, total: r.total,
+                     missing: r.missing, extra: r.extra, plays: S.plays,
+                     cpm: r.cpm, secs: r.secs, chars: m.chars });
+    S.records.sort((a, b) => a.i - b.i);
+    save();
+    S.lastR = r;
+    renderResult(r);
+    $('result').hidden = false;       // 结果常驻，直到下一次提交覆盖
+    next();                           // 立即进入下一段，不等确认
+  }
+
+  // 播放中试图提交时的轻提示：改提示行，1.3 秒后自动还原，不打断输入
+  function nudge(msg) {
+    const el = $('playHint');
+    if (el.textContent === msg) return;
+    el.textContent = msg;
+    clearTimeout(S.nudgeT);
+    S.nudgeT = setTimeout(() => setPhase(S.phase), 1300);
+  }
+
+  // 打字速度：按实际打出的字数（不计标点）折算成"字/分钟"。
+  // 计时从本段首次开播算起，含听音与思考时间 —— 这是听打的真实吞吐，不是纯手速。
+  // 不足 1 秒（粘贴）或超过 1 小时（中途离开）不参与统计，避免出现离谱数字。
+  function measure(typed) {
+    const chars = normStr(typed).length;
+    if (S.t0 === null || !chars) return { cpm: 0, secs: 0, chars };
+    const secs = (performance.now() - S.t0) / 1000;
+    if (secs < 1 || secs > 3600) return { cpm: 0, secs, chars };
+    return { cpm: Math.round((chars / secs) * 60), secs, chars };
+  }
+
+  function compare(orig, typed) {
+    const oc = [...orig];
+    const map = [], normed = [];
+    oc.forEach((ch, idx) => {
+      const n = normChar(ch);
+      if (n === null) { map[idx] = -1; return; }
+      for (const c of n) { normed.push(c); map[idx] = normed.length - 1; }
+    });
+    const b = [];
+    for (const ch of typed) { const n = normChar(ch); if (n !== null) b.push(n); }
+
+    const { ma, mb } = lcs(normed, b);
+    let correct = 0;
+    for (let k = 0; k < ma.length; k++) if (ma[k]) correct++;
+
+    let origHtml = '';
+    oc.forEach((ch, idx) => {
+      const k = map[idx];
+      if (k === -1) origHtml += '<span class="p">' + esc(ch) + '</span>';
+      else if (ma[k]) origHtml += '<span class="ok">' + esc(ch) + '</span>';
+      else origHtml += '<span class="bad">' + esc(ch) + '</span>';
+    });
+    let typedHtml = b.length
+      ? b.map((c, j) => '<span class="' + (mb[j] ? 'ok' : 'bad') + '">' + esc(c) + '</span>').join('')
+      : '<span class="bad">（未输入）</span>';
+
+    const total = normed.length || 1;
+    return {
+      acc: correct / total, correct, total: normed.length,
+      missing: normed.length - correct, extra: b.length - correct,
+      origHtml, typedHtml
+    };
+  }
+
+  function normChar(ch) {
+    const code = ch.charCodeAt(0);
+    let c = (code >= 0xFF01 && code <= 0xFF5E) ? String.fromCharCode(code - 0xFEE0) : ch;
+    if (/\s/.test(c)) return null;
+    if (/[，。、；：？！“”‘’（）《》〈〉【】「」『』—–…·,.;:?!"'()\[\]{}<>\-~`／\/]/.test(c)) return null;
+    return c.toLowerCase();
+  }
+
+  // 整串归一化：去掉标点空白、全角转半角、统一小写。判定"完全一致"用这个口径，
+  // 与 compare() 的计分口径保持一致——不打标点也算完全一致。
+  function normStr(s) {
+    let out = '';
+    for (const ch of s) {
+      const n = normChar(ch);
+      if (n !== null) out += n;
+    }
+    return out;
+  }
+
+  function lcs(a, b) {
+    const n = a.length, m = b.length, w = m + 1;
+    const dp = new Uint16Array((n + 1) * w);
+    for (let i = n - 1; i >= 0; i--) {
+      for (let j = m - 1; j >= 0; j--) {
+        dp[i * w + j] = a[i] === b[j]
+          ? dp[(i + 1) * w + j + 1] + 1
+          : Math.max(dp[(i + 1) * w + j], dp[i * w + j + 1]);
+      }
+    }
+    const ma = new Uint8Array(n), mb = new Uint8Array(m);
+    let i = 0, j = 0;
+    while (i < n && j < m) {
+      if (a[i] === b[j]) { ma[i] = 1; mb[j] = 1; i++; j++; }
+      else if (dp[(i + 1) * w + j] >= dp[i * w + j + 1]) i++;
+      else j++;
+    }
+    return { ma, mb };
+  }
+
+  // ---------------------------------------------------------------- 渲染
+
+  function setPhase(p) {
+    S.phase = p;
+    const btn = $('btnPlay');
+    const canType = p === 'playing' || p === 'typing';   // 边听边打：播放中也能输入
+    $('viz').classList.toggle('on', p === 'playing');
+    $('input').disabled = !canType;
+    // 提交按钮只在"听完待打"时可点：播放期间语音还没念完，避免鼠标误点造成误提交。
+    // 键盘 Enter 与"打全自动提交"不受此限制，边听边打的提前交卷仍然可用。
+    $('btnSubmit').disabled = p !== 'typing';
+    $('btnSubmit').title = p === 'playing' ? '语音还在播放，念完才能提交' : '';
+    btn.disabled = p === 'playing';
+
+    if (p === 'ready') btn.textContent = '开始听打';
+    else if (p === 'playing') btn.textContent = '播放中…';
+    else if (p === 'typing') btn.textContent = '重播';
+
+    if (p === 'playing') $('playHint').textContent = '第 ' + (S.i + 1) + ' / ' + S.segs.length + ' 段　边听边打';
+    else if (p === 'typing') $('playHint').textContent = S.plays > 1
+      ? '听完 ' + S.plays + ' 次　Enter 提交'
+      : '听完了　Enter 提交';
+    updateCounter();
+    renderTop();
+  }
+
+  function renderTop() {
+    const done = S.records.length;
+    const avg = done ? S.records.reduce((s, r) => s + r.acc, 0) / done : 0;
+    $('stats').textContent = S.segs.length
+      ? '第 ' + Math.min(S.i + 1, S.segs.length) + ' / ' + S.segs.length + ' 段'
+        + (done ? '　已完成 ' + done + ' 段　均分 ' + pct(avg) : '')
+      : '';
+    $('bar').style.width = (S.segs.length ? (S.i / S.segs.length) * 100 : 0) + '%';
+  }
+
+  function renderResult(r) {
+    const cls = r.acc >= 0.95 ? 'good' : r.acc >= 0.8 ? 'mid' : 'low';
+    $('scoreRow').innerHTML =
+      '<span class="badge ' + cls + '" style="font-size:13px;padding:4px 12px">正确率 ' + pct(r.acc) + '</span>' +
+      '<span class="badge speed" style="font-size:13px;padding:4px 12px">'
+        + (r.cpm ? r.cpm + ' 字/分' : '速度 —') + '</span>' +
+      '<span class="hint">正确 ' + r.correct + ' / ' + r.total + '　漏 ' + r.missing + '　多打或错 ' + r.extra + '</span>';
+    $('diffOrig').innerHTML = r.origHtml;
+    $('diffTyped').innerHTML = r.typedHtml;
+    $('resultHint').textContent = (r.acc === 1 ? '全对' : '红色是没对上的字')
+      + (r.secs ? '　用时 ' + r.secs.toFixed(1) + ' 秒' : '');
+  }
+
+  function next() {
+    stopAudio();
+    if (S.i >= S.segs.length - 1) { showSummary(); return; }
+    S.i += 1;
+    S.plays = 0;
+    S.t0 = null;
+    $('input').value = '';
+    updateCounter();
+    save();
+    setPhase('ready');
+    play();
+  }
+
+  function showSummary() {
+    $('stage').hidden = true;
+    $('inputPanel').hidden = true;
+    $('result').hidden = true;
+    $('summary').hidden = false;
+    $('bar').style.width = '100%';
+
+    const rs = S.records.slice().sort((a, b) => a.i - b.i);
+    const avg = rs.length ? rs.reduce((s, r) => s + r.acc, 0) / rs.length : 0;
+    const rated = rs.filter((r) => r.cpm > 0);          // 旧记录没有 cpm，跳过
+    const avgCpm = rated.length ? Math.round(rated.reduce((s, r) => s + r.cpm, 0) / rated.length) : 0;
+    $('sumHead').innerHTML =
+      '<span class="badge ' + (avg >= 0.95 ? 'good' : avg >= 0.8 ? 'mid' : 'low') + '" style="font-size:15px;padding:6px 16px">'
+      + '总正确率 ' + pct(avg) + '</span>' +
+      '<span class="badge speed" style="font-size:15px;padding:6px 16px">'
+      + (avgCpm ? '均速 ' + avgCpm + ' 字/分' : '均速 —') + '</span>' +
+      '<span class="hint">共 ' + rs.length + ' 段，' + rs.reduce((s, r) => s + r.total, 0) + ' 字</span>';
+
+    const worst = rs.slice().sort((a, b) => a.acc - b.acc).slice(0, 5);
+    let html = '<tr><th>段</th><th>正确率</th><th>速度</th><th>漏字</th><th>重听</th><th>开头</th></tr>';
+    worst.forEach((r) => {
+      const t = S.segs[r.i] || '';
+      html += '<tr><td class="num">' + (r.i + 1) + '</td>'
+        + '<td class="' + (r.acc >= 0.95 ? 'ok' : '') + '">' + pct(r.acc) + '</td>'
+        + '<td class="num">' + (r.cpm ? r.cpm + ' 字/分' : '—') + '</td>'
+        + '<td class="num">' + r.missing + '</td>'
+        + '<td class="num">' + r.plays + '</td>'
+        + '<td style="color:var(--muted)">' + esc(t.slice(0, 18)) + (t.length > 18 ? '…' : '') + '</td></tr>';
+    });
+    $('sumTable').innerHTML = html;
+  }
+
+  const pct = (v) => Math.round(v * 100) + '%';
+
+  // ---------------------------------------------------------------- 存储
+
+  function save() {
+    try {
+      localStorage.setItem(S.key, JSON.stringify({
+        cursor: S.i, records: S.records, rate: S.rate
+      }));
+    } catch (e) { /* 隐私模式下忽略 */ }
+  }
+  function load() {
+    try { return JSON.parse(localStorage.getItem(S.key) || '{}'); } catch (e) { return {}; }
+  }
+
+  // ---------------------------------------------------------------- 前端切段（无 library.js 时）
+
+  const CLAUSE = '，、；：,;:';
+
+  function frontSplit(text, lo, hi) {
+    text = text.replace(/\r\n/g, '\n').replace(/\u3000/g, ' ');
+    const paras = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+    const out = [];
+
+    const sentences = (p) => {
+      const arr = []; let cur = '';
+      for (const ch of p) {
+        cur += ch;
+        if ('。！？；!?;…'.includes(ch)) { arr.push(cur); cur = ''; }
+      }
+      if (cur.trim()) arr.push(cur);
+      return arr;
+    };
+    const clauses = (s) => {
+      if (s.length <= hi) return [s];
+      const arr = []; let cur = '';
+      for (const ch of s) {
+        cur += ch;
+        if (CLAUSE.includes(ch) && cur.length >= Math.max(6, hi >> 1)) { arr.push(cur); cur = ''; }
+      }
+      if (cur) arr.push(cur);
+      return arr;
+    };
+    const wrap = (s) => {
+      if (s.length <= hi) return [s];
+      const n = Math.ceil(s.length / hi);
+      const per = Math.ceil(s.length / n);
+      const arr = []; let cur = '';
+      for (const ch of s) {
+        cur += ch;
+        if (cur.length >= per) {
+          let k = -1;
+          for (const p of CLAUSE) k = Math.max(k, cur.lastIndexOf(p));
+          if (k >= Math.floor(per * 0.6)) { arr.push(cur.slice(0, k + 1)); cur = cur.slice(k + 1); }
+          else { arr.push(cur); cur = ''; }
+        }
+      }
+      if (cur) {
+        if (arr.length && cur.length < per * 0.5 && arr[arr.length - 1].length + cur.length <= hi) {
+          arr[arr.length - 1] += cur;
+        } else arr.push(cur);
+      }
+      return arr;
+    };
+
+    for (const p of paras) {
+      if (p.length <= hi) { out.push(p); continue; }
+      const units = [];
+      for (const s of sentences(p)) for (const c of clauses(s)) units.push(...wrap(c));
+      let buf = '';
+      for (const u of units) {
+        if (!buf) buf = u;
+        else if (buf.length + u.length <= hi) buf += u;
+        else { out.push(buf); buf = u; }
+      }
+      if (buf.trim()) {
+        if (out.length && buf.length < lo && out[out.length - 1].length + buf.length <= hi) {
+          out[out.length - 1] += buf;
+        } else out.push(buf);
+      }
+    }
+    return out.filter((s) => /[0-9A-Za-z\u4e00-\u9fff]/.test(s));
+  }
+
+  // ---------------------------------------------------------------- 事件
+
+  function replay() {
+    stopAudio();
+    S.phase = 'ready';
+    play();
+  }
+
+  $('btnPlay').onclick = () => {
+    if (S.phase === 'ready') play();
+    else if (S.phase === 'typing') replay();
+  };
+  $('btnSubmit').onclick = () => submit();   // 显式无参，避免事件对象被当成自动提交标记
+  $('docPick').onchange = (e) => {
+    const doc = S.docs.find((d) => d.id === e.target.value);
+    if (!doc || doc === S.doc) return;
+    save();                                  // 先把当前这篇的进度落盘，再切换
+    activate(doc);                           // 内部会停播、清空、恢复新文章的进度
+  };
+  $('btnRestart').onclick = () => {
+    S.i = 0; S.plays = 0; S.records = []; S.t0 = null; save();
+    $('summary').hidden = true; $('stage').hidden = false; $('inputPanel').hidden = false;
+    $('input').value = ''; updateCounter();
+    $('bar').style.width = '0%';
+    setPhase('ready');
+    renderTop();
+  };
+  $('rate').onchange = (e) => {
+    S.rate = parseFloat(e.target.value);
+    if (S.audio) S.audio.playbackRate = S.rate;
+    save();
+  };
+  // 计数器显示"已打 / 目标"，口径与 diff 一致（不计标点），差几个字一眼可见
+  function updateCounter() {
+    const t = normStr(S.segs[S.i] || '').length;
+    const n = normStr($('input').value).length;
+    $('counter').textContent = t ? n + ' / ' + t + ' 字' : n + ' 字';
+  }
+
+  // 自动提交：当输入与原文完全一致（同一归一化口径，标点不计）时立即交卷，不等待。
+  // 不完全一致的部分仍然只走手动 Enter —— 错字、漏字、多打都留给人自己判断。
+  function maybeAutoSubmit() {
+    if (S.phase !== 'typing' && S.phase !== 'playing') return;
+    const el = $('input');
+    if (el.isComposing) return;                    // 拼音还在候选框里，不能判
+    const target = normStr(S.segs[S.i] || '');
+    if (!target) return;                           // 空段不自动提交，防止误触
+    if (normStr(el.value) !== target) return;
+    submit(true);                                  // 打全自动提交，明确信号不算误触
+  }
+
+  $('input').addEventListener('input', () => {
+    updateCounter();
+    maybeAutoSubmit();
+  });
+  // 部分输入法上屏后只派发 compositionend 而不再补 input，这里兜一次
+  $('input').addEventListener('compositionend', () => setTimeout(maybeAutoSubmit, 0));
+  document.addEventListener('keydown', (e) => {
+    if (e.isComposing || e.keyCode === 229) return;    // 输入法正在组词，Enter 属于选词
+    const ae = document.activeElement;
+    const onSelect = ae && ae.tagName === 'SELECT';    // 下拉框上的方向键/回车交给它自己
+    if (e.key === 'Enter' && !onSelect) {
+      if (S.phase === 'typing' || S.phase === 'playing') {
+        e.preventDefault(); submit(); return;
+      }
+      if (S.phase === 'ready' && ae !== $('pasteBox')) {
+        e.preventDefault(); play(); return;
+      }
+    }
+    if (e.key === 'Escape' && !onSelect && S.phase !== 'ready' && S.phase !== 'idle') {
+      e.preventDefault(); replay();
+    }
+  });
+})();
+</script>
+</body>
+</html>
